@@ -1,0 +1,3 @@
+rootProject.name = "MyKotlin"
+include ':app'
+include ':lib_kt_summary'

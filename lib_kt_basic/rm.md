@@ -236,3 +236,167 @@ class Rectangle(val height: Int, val width: Int){
 
 属性isSquare不需要字段来保存它的值。它只有一个自定义实现的getter，它的值是每次访问属性的时候计算出来的。</br>
 
+也可以不使用花括号：
+
+```kotlin
+get() = height == width
+```
+
+声明一个没有参数的函数是否比声明带有自定义getter的属性更好。其实俩种方式几乎一样：实现和性能都没有差别，唯一的差异就是可读性。在了解其他的语言特性之前，先探索一下Kotlin的代码在磁盘中是怎样组织的。</br>
+
+
+
+#### Kotlin源码布局：目录和包
+
+Java会把所有的类组织成包。Kotlin也有和Java类似的包的概念。每一个Kotlin文件都能以一条package语句开头，而文件中定义的所有声明(类、函数及属性)都会被放到这个包中。如果其他文件中定义的声明也有相同的包，这个文件可以直接使用它们；如果包不相同，则需要导入它们。和Java一样，导入语句放在文件的最前面并使用关键字import。下面这个源码文件的例子展示了包声明和导入语句的语法。</br>
+
+```kotlin
+package geometry.shapes //包声明
+
+import java.util.Random //导入标准Java库的类
+
+class Rectangle(val height: Int, val width: Int){
+	val isSquare: Boolean
+		get() = height == width
+}
+
+fun createRandomRectangle(): Rectangle{
+	val random = Random()
+	return Rectangle(random.nextInt(), random.nextInt())
+}
+```
+
+Kotlin不区分导入的是类还是函数，而且，它允许使用import关键字导入任何类的声明。可以直接导入顶层函数的名称。like this：</br>
+
+```kotlin
+package geometry.example
+
+import geometry.shapes.createRandomRectangle //导入函数名称
+
+fun main(args: Array<String>){
+	println(createRandomRectangle().isSquare) //极少数会打印true
+}
+```
+
+也可以在包名称后面加上`.*`来导入特定包中定义的所有声明。注意，这种星号导入不仅让保重定义的类可见，也会让顶层函数和属性可见。</br>
+
+在Java中，要把类放到和包结构相匹配的文件和目录中。在Kotlin中，可以把多个类放在同一个文件中，文件的名字还可以随意选择。Kotlin也没有对磁盘上源文件的布局强加任何限制。不需要遵循目录层级结构。不过，大多数情况下，遵循Java的目录层级结构把源码文件放到目录中，是个不错的选择。Java和Kotlin混编的项目尤为重要，因为比较清晰。但是也应该毫不犹豫的把多个类放在同一个文件中，特别是那些很小的类。</br>
+
+现在了解了程序的结构是怎样的，继续看下Kotlin的控制结构。</br>
+
+### 表示和处理选择：枚举和"when"
+
+`when`结构可以被认为是Java中switch结构的替代品，但是更强大，也使用的更频繁。顺便看下Kotlin声明枚举的例子以及`智能转换`的概念。</br>
+
+#### 声明枚举类
+
+```kotlin
+enum class Color{
+	RED,ORANGE,YELLOW,GREEN,BLUE,INDIGO,VIOLET
+}
+```
+
+这是极少数Kotlin声明比Java使用了更多关键字的例子：Kotlin用了`enum`，`class`俩个关键字。而Java只有一个`enum`关键字。在Kotlin中，`enum`是一个所谓的软关键字：只有当它出现在class前面时候才有特殊意义，在其他地方可以把它当作普通的名称使用。与此不同的是`class`仍是一个关键字，要继续使用名称`clazz`和`aClass`来声明变量。</br>
+
+和Java一样，枚举并不是值的列表：可以给枚举类声明属性和方法。如下所示：
+
+```kotlin
+enum class Color(
+	val r: Int, val g: Int,	b: Int //声明枚举常量的属性
+){
+	RED(255,0,0), ORANGE(255,165,0), //在每个常量创建的时候指定属性值
+	YELLOW(255,255,0), GREEN(0,255,0), BLUE(0,0,255), 
+	INDIGO(75,0,130), VIOLET(238,130,238); //这里必须有分号
+	
+	fun rgb() = (r * 256 + g) * 256 + b //给枚举类定义一个方法
+}
+>>>println(Color.BLUE.rgb())
+255
+```
+
+枚举常量用的声明构造方法和属性的语法与之前的常规类一样。当声明每个枚举常量的时候，必须提供该常量的属性值。注意：`这个例子展示了Kotlin语法中唯一需要使用分号的地方`：如果要在枚举类中定义任何方法，就要使用分号把枚举常量列表和方法分开。下面看一些在代码中处理枚举常量的超酷的方式。</br>
+
+#### 使用"when"处理枚举类
+
+假设需要一个函数来告诉每种颜色在这个口诀（红橙黄绿蓝靛紫）中对应的单词，而并不想把这些信息存储在枚举内部。在Java中可以使用`switch`语句完成。而Kotlin中对应的结构是`when`。</br>
+
+和`if`相似，`when`是一个有返回值的表达式，因此可以写一个直接返回`when`表达式的表达式体函数。这里给出一个多行的表达式体函数的例子：
+
+```kotlin
+fun getMnemonic(color: Color) = 
+	when(color){
+		Color.RED -> "红"
+		Color.ORANGE -> "橙"
+		Color.YELLO -> "黄"
+		Color.GREEN -> "绿"
+		Color.BLUE -> "蓝"
+		Color.INDIGO -> "靛"
+		Color.VIOLET -> "紫"
+	}
+>>> println(getMnemonic(Color.BLUE))
+蓝
+```
+
+上面的代码更具传进来的color值找到对应的分支。和Java不一样，不需要在每个分支上都写上`break`语句(在Java中遗漏break通常会导致bug)。如果匹配成功，只有对应的分支会执行。也可以把多个值合并到一个分支，只需要逗号隔开。
+
+```kotlin
+fun getWarmth(color: Color) = when(color){
+	Color.RED, Color.ORANGE, Color.YELLOW -> "warm"
+	Color.GREEN -> "neutral"
+	Color.BLUE, Color.INDIGO, Color.VIOLET -> "cold"
+}
+>>> println(getWarmth(Color.ORANGE))
+warm
+```
+
+这些例子用的都是枚举常量的完整名称，即指定了枚举类的名称`Color`。可以通过导入这些常量来简化代码。
+
+```kotlin
+import ch02.colors.Color //导入其他包中定义的Color类
+import ch02.colors.Color.* //显式的导入枚举常量就可以使用它们的名称
+
+fun getWarmth(color: Color) = when(color){
+	RED, ORANGE, YELLOW -> "warm" //使用导入常量的名称
+	GREEN -> "netural"
+	BLUE, INDIGO, VIOLET -> "cold"
+}
+```
+
+#### 在"when"结构中使用任意对象
+
+Kotlin中的`when`结构比Java中的`switch`强大的多。`switch`要求必须使用常量(枚举常量、字符串或者数字字面值)作为分支条件。`when`允许使用任何对象。写一个函数来混合俩种颜色，如果它们在我们这个小小的调色板中是能够混合的。只要很少的选项，就可以简单的把所有组合列举出来。
+
+```kotlin
+fun mix(c1: Color, c2: Color) = 
+	when(setOf(c1, c2)){ //"when"表达式的实参可以是任何对象，它被检查是否与分支条件相等
+		setOf(RED, YELLOW) -> ORANGE //列举出能够混合的颜色对
+		setOf(YELLOW, BLUE) -> GREEN
+		setOf(BLUE, VIOLET) -> INDIGO
+		else -> throw Exception("Dirty color") //如果没有任何其他分支匹配这里就会执行
+	}
+```
+
+能使用任何表达式做`when`的分支条件，很多情况下写的代码即简洁又漂亮，这个列子中分支条件是等式检查，接下会看到条件还可以是任意的布尔表达式。
+
+#### 使用不带参数的"when"
+
+可能发现上一个代码片段效率多少有些低，每次调用这个函数的时候，它都会创建一些Set实例，仅仅用来检查俩种给定颜色是否和另外俩种颜色匹配。一般没什么大问题，但是如果这个函数调用频繁，就非常值得用另一种方式重写，来避免创建额外的垃圾对象。`代码可读性会变差，但这是为了达到更好的性能付出的代价`
+
+```kotlin
+fun mixOptimized(c1: Color, c2: Color) = 
+	when{ //没有实参传给"when"
+		(c1 == RED && c2 == YELLOW) || (c1 == YELLOW && c2 == RED) -> ORANGE
+		(c1 == YELLOW && c2 == BLUE) || (c1 == BLUE && c2 == YELLOW) -> ORANGE
+		(c1 == BLUE && c2 == VIOLET) || (c1 == VIOLET && c2 == BLUE) -> ORANGE
+		else -> throw Exception("Dirty color")
+	}
+>>> println(mixOptimized(BLUE, YELLOW))
+GREEN
+```
+
+如果没有给`when`表达式提供参数，分支条件就是任意的布尔表达式。`mixOptimized`函数和前面的`mix`函数做的事情一样。这种写法的优点是不会创建额外的对象，但代价是更难理解。继续看下`智能转换`在`when`结构中发挥作用的例子。
+
+#### 智能转换： 合并类型检查和转换
+
+to be continue...
+
